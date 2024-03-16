@@ -178,8 +178,6 @@ const Component = ({
                 })
                 if (linkcardUrl !== null) {
                     popupContent.url = new URL(linkcardUrl)
-                }
-                if (linkcardUrl !== null) {
                     // OGPを生成する必要がない場合(!noGenerate or !imageAttached)
                     // またはOGPの生成を抑制している場合(noGenerate)で
                     // 外部リンクが添付されている場合はlinkcardを付与する
