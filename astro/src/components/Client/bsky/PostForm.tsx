@@ -156,9 +156,9 @@ const Component = ({
                 e.name = "postform.tsx"
                 throw e
             }
-            const noImagesAttached = (imageFiles.length <= 0)
+            const imagesAttached = (imageFiles.length > 0)
             // 画像のアップロードを行う場合の処理(Bluesky側)
-            if (!noImagesAttached) {
+            if (imagesAttached) {
                 record = await attachImageToRecord({
                     base: record,
                     session: sessionNecessary,
@@ -180,10 +180,10 @@ const Component = ({
                     popupContent.url = new URL(linkcardUrl)
                 }
                 if (linkcardUrl !== null) {
-                    // OGPを生成する必要がない場合(!noGenerate but noImageAttached)
+                    // OGPを生成する必要がない場合(!noGenerate or !imageAttached)
                     // またはOGPの生成を抑制している場合(noGenerate)で
                     // 外部リンクが添付されている場合はlinkcardを付与する
-                    if (noGenerate || noImagesAttached) {
+                    if (noGenerate || !imagesAttached) {
                         record = await attachExternalToRecord({
                             apiUrl: siteurl,
                             base: record,
@@ -213,7 +213,7 @@ const Component = ({
                 isError: false
             })
             // noGenerateの場合はTwitter用ページは生成しない
-            if (!noGenerate && !noImagesAttached) {
+            if (!noGenerate && imagesAttached) {
                 setMsgInfo({
                     msg: "Twitter用ページ生成中...",
                     isError: false
