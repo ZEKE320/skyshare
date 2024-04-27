@@ -2,6 +2,7 @@ import type { APIContext, APIRoute } from "astro"
 import type { apiRequest, errorResponse, ogpMetaData } from "@/lib/api/types"
 import { corsAllowOrigin } from "@/lib/vars"
 import validateRequestReturnURL from "@/lib/api/validateRequest"
+import puppeteer from "puppeteer"
 
 import * as cheerio from "cheerio"
 
@@ -75,32 +76,34 @@ export const GET: APIRoute = async ({
         new TextDecoder(encoding).decode(await arrayBuffer.arrayBuffer())
 
     try {
-        const htmlBlob: Blob = await fetch(url, {
-            method: "GET",
-            headers: {
-                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": validateResult.language,
-                "Cache-Control": "no-cache",
-                "User-Agent": "bot",
-            },
-        })
-            .then(res => res.blob())
-            .catch((res: Error) => {
-                const e: Error = new Error(res.message)
-                e.name = res.name
-                throw e
-            })
-        const encoding: string = await findEncoding(htmlBlob)
-        const html: string = unescapeHtml(
-            await decodeAsText(htmlBlob, encoding),
-        )
+        // const htmlBlob: Blob = await fetch(url, {
+        //     method: "GET",
+        //     headers: {
+        //         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        //         "Accept-Language": validateResult.language,
+        //         "Cache-Control": "no-cache",
+        //         "User-Agent": "bot",
+        //     },
+        // })
+        //     .then(res => res.blob())
+        //     .catch((res: Error) => {
+        //         const e: Error = new Error(res.message)
+        //         e.name = res.name
+        //         throw e
+        //     })
+        // const encoding: string = await findEncoding(htmlBlob)
+        // const html: string = unescapeHtml(
+        //     await decodeAsText(htmlBlob, encoding),
+        // )
 
-        const meta: ogpMetaData = extractHead({ html })
+        // const meta: ogpMetaData = extractHead({ html })
 
+        const meta = await getOgpData(url)
         const response = new Response(JSON.stringify(meta), {
             status: 200,
             headers: headers,
         })
+
         return response
     } catch (error: unknown) {
         let [name, msg]: string = "Unexpected Error"
@@ -213,4 +216,45 @@ const extractHead = ({ html }: { html: string }): ogpMetaData => {
         description: typeof description !== "undefined" ? description : "",
         image: typeof image !== "undefined" ? image : "",
     }
+}
+
+const getOgpData = async (url: string): Promise<ogpMetaData> => {
+    const browser = await puppeteer.launch()
+    const page = await browser.newPage()
+    await page.goto(url, { waitUntil: "networkidle0" })
+
+    const data: ogpMetaData = {
+        type: "meta",
+        title: "",
+        description: "",
+        image: "",
+    }
+
+    const titleElement = await page.$("meta[property='og:title']")
+    if (titleElement) {
+        data.title = await page.evaluate(
+            element => element.content,
+            titleElement,
+        )
+    }
+
+    const descElement = await page.$("meta[property='og:description']")
+    if (descElement) {
+        data.description = await page.evaluate(
+            element => element.content,
+            descElement,
+        )
+    }
+
+    const imageElement = await page.$("meta[property='og:image']")
+    if (imageElement) {
+        data.image = await page.evaluate(
+            element => element.content,
+            imageElement,
+        )
+    }
+
+    await browser.close()
+
+    return data
 }
