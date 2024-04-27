@@ -52,6 +52,7 @@ module.exports = {
         "tailwind.config.mjs",
         "jest.config.cjs",
         "astro.config.mjs",
+        "puppeteer.config.cjs",
     ],
     overrides: [
         {
